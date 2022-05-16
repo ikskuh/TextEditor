@@ -197,6 +197,56 @@ pub fn graphemeCount(editor: TextEditor) usize {
     return countGraphemes(editor.bytes.items);
 }
 
+fn ValidateFont(comptime T: type) type {
+    return struct {
+        const Self = @This();
+        inner: T,
+
+        pub fn measureStringWidth(self: Self, string: []const u8) u15 {
+            return self.inner.measureStringWidth(string);
+        }
+    };
+}
+
+fn validateFont(font: anytype) ValidateFont(@TypeOf(font)) {
+    return .{ .inner = font };
+}
+
+/// Sets the cursor position based on a visual position on the screen.
+pub fn setGraphicalCursor(editor: *TextEditor, font: anytype, x: i16, y: i16) void {
+    const safe_font = validateFont(font);
+    _ = y; // we don't do multiline editing yet
+
+    var iter = editor.graphemeIterator();
+
+    if (x < 0) {
+        editor.cursor = 0;
+        return;
+    }
+    const abs_x = std.math.absCast(x);
+
+    // TODO: Optimize by using binary search on the string instead of linear search.
+
+    const string = editor.bytes.items;
+    var left_edge: u15 = 0;
+    var index: usize = 0;
+    while (iter.next()) |wc| : (index += 1) {
+        const right_edge = safe_font.measureStringWidth(string[0 .. wc.offset + wc.bytes.len]);
+        defer left_edge = right_edge;
+
+        if (x >= left_edge and x < right_edge) {
+            const center = (left_edge + right_edge) / 2;
+            if (x <= center) { // slightly prefer left placement over right placement
+                editor.cursor = index;
+            } else {
+                editor.cursor = index + 1;
+            }
+            break;
+        }
+    }
+    editor.cursor = index;
+}
+
 fn graphemeIterator(editor: TextEditor) GraphemeIterator {
     return makeGraphemeIteratorUnsafe(editor.bytes.items);
 }

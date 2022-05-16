@@ -15,6 +15,7 @@ fn init(std.mem.Allocator, initial_text: []const u8) InsertError!TextEditor {
 fn deinit(*TextEditor) void;
 fn setText(*TextEditor, text: []const u8) InsertError!void;
 fn getText(TextEditor) []const u8;
+fn getSubString(editor: TextEditor, start: usize, length: ?usize) []const u8;
 fn setCursor(*TextEditor, offset: usize) SetCursorError!void;
 fn moveCursor(*TextEditor, direction: EditDirection, unit: EditUnit) void;
 fn delete(*TextEditor, direction: EditDirection, unit: EditUnit) void;

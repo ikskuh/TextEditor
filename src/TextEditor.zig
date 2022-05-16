@@ -142,11 +142,23 @@ pub fn moveCursor(editor: *TextEditor, direction: EditDirection, unit: EditUnit)
 
 /// Deletes the `unit` based on the cursor into `direction`.
 pub fn delete(editor: *TextEditor, direction: EditDirection, unit: EditUnit) void {
-    //
-    _ = editor;
-    _ = direction;
-    _ = unit;
-    @panic("not implemented yet");
+    const cursor_start = editor.cursor;
+    editor.moveCursor(direction, unit);
+    const cursor_end = editor.cursor;
+
+    if (cursor_start == cursor_end)
+        return;
+
+    const byte_range_start = editor.graphemeToByteOffset(std.math.min(cursor_start, cursor_end));
+    const byte_range_end = editor.graphemeToByteOffset(std.math.max(cursor_start, cursor_end));
+
+    // cannot fail as we're always reducing the range by at least one byte, never increase!
+    editor.bytes.replaceRange(byte_range_start, byte_range_end - byte_range_start, "") catch unreachable;
+
+    switch (direction) {
+        .left => {}, // no cursor movement needed, as it is done already in moveCursor
+        .right => editor.cursor = cursor_start, // move cursor back to start as the movement is only used for range detection
+    }
 }
 
 /// Inserts utf-8 encoded `text` at the cursor.

@@ -188,3 +188,128 @@ test "moveCursor (word, left)" {
     editor.moveCursor(.left, .word);
     try std.testing.expectEqual(@as(usize, 0), editor.cursor);
 }
+
+test "delete (line)" {
+    var editor = try TextEditor.init(std.testing.allocator, "");
+    defer editor.deinit();
+
+    try editor.setText("[😊] Häuschen");
+    try editor.setCursor(2);
+    editor.delete(.right, .line);
+    try std.testing.expectEqualStrings("[😊", editor.getText());
+
+    try editor.setText("[😊] Häuschen");
+    try editor.setCursor(2);
+    editor.delete(.left, .line);
+    try std.testing.expectEqualStrings("] Häuschen", editor.getText());
+}
+
+test "delete (letter, left)" {
+    var editor = try TextEditor.init(std.testing.allocator, "");
+    defer editor.deinit();
+
+    try editor.setText("[😊] Häuschen");
+    try editor.setCursor(4);
+    editor.delete(.left, .letter);
+    try std.testing.expectEqualStrings("[😊]Häuschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 3), editor.cursor);
+
+    editor.delete(.left, .letter);
+    try std.testing.expectEqualStrings("[😊Häuschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+
+    editor.delete(.left, .letter);
+    try std.testing.expectEqualStrings("[Häuschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 1), editor.cursor);
+
+    editor.delete(.left, .letter);
+    try std.testing.expectEqualStrings("Häuschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 0), editor.cursor);
+
+    editor.delete(.left, .letter);
+    try std.testing.expectEqualStrings("Häuschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 0), editor.cursor);
+}
+
+test "delete (letter, right)" {
+    var editor = try TextEditor.init(std.testing.allocator, "");
+    defer editor.deinit();
+
+    try editor.setText("[😊] Häuschen");
+    try editor.setCursor(2);
+    editor.delete(.right, .letter);
+    try std.testing.expectEqualStrings("[😊 Häuschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+
+    editor.delete(.right, .letter);
+    try std.testing.expectEqualStrings("[😊Häuschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+
+    editor.delete(.right, .letter);
+    try std.testing.expectEqualStrings("[😊äuschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+
+    editor.delete(.right, .letter);
+    try std.testing.expectEqualStrings("[😊uschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+
+    editor.delete(.right, .letter);
+    try std.testing.expectEqualStrings("[😊schen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+
+    try editor.setCursor(6);
+
+    editor.delete(.right, .letter);
+    try std.testing.expectEqualStrings("[😊sche", editor.getText());
+    try std.testing.expectEqual(@as(usize, 6), editor.cursor);
+
+    editor.delete(.right, .letter);
+    try std.testing.expectEqualStrings("[😊sche", editor.getText());
+    try std.testing.expectEqual(@as(usize, 6), editor.cursor);
+}
+
+test "delete (word, right)" {
+    var editor = try TextEditor.init(std.testing.allocator, "");
+    defer editor.deinit();
+
+    try editor.setText("[😊] Häuschen");
+    try editor.setCursor(2);
+    editor.delete(.right, .word);
+    try std.testing.expectEqualStrings("[😊 Häuschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+    editor.delete(.right, .word);
+    try std.testing.expectEqualStrings("[😊Häuschen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+    editor.delete(.right, .word);
+    try std.testing.expectEqualStrings("[😊", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+    editor.delete(.right, .word);
+    try std.testing.expectEqualStrings("[😊", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+}
+
+test "delete (word, left)" {
+    var editor = try TextEditor.init(std.testing.allocator, "");
+    defer editor.deinit();
+
+    try editor.setText("[😊] Häuschen");
+    try editor.setCursor(8);
+    editor.delete(.left, .word);
+    try std.testing.expectEqualStrings("[😊] chen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 4), editor.cursor);
+    editor.delete(.left, .word);
+    try std.testing.expectEqualStrings("[😊]chen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 3), editor.cursor);
+    editor.delete(.left, .word);
+    try std.testing.expectEqualStrings("[😊chen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 2), editor.cursor);
+    editor.delete(.left, .word);
+    try std.testing.expectEqualStrings("[chen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 1), editor.cursor);
+    editor.delete(.left, .word);
+    try std.testing.expectEqualStrings("chen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 0), editor.cursor);
+    editor.delete(.left, .word);
+    try std.testing.expectEqualStrings("chen", editor.getText());
+    try std.testing.expectEqual(@as(usize, 0), editor.cursor);
+}

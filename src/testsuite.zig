@@ -313,3 +313,14 @@ test "delete (word, left)" {
     try std.testing.expectEqualStrings("chen", editor.getText());
     try std.testing.expectEqual(@as(usize, 0), editor.cursor);
 }
+
+test "getSubString" {
+    var editor = try TextEditor.init(std.testing.allocator, "[😊] Häuschen");
+    defer editor.deinit();
+
+    try std.testing.expectEqualStrings("", editor.getSubString(0, 0));
+    try std.testing.expectEqualStrings("[😊] Häuschen", editor.getSubString(0, null));
+    try std.testing.expectEqualStrings("[😊] Häuschen", editor.getSubString(0, 12));
+    try std.testing.expectEqualStrings("[😊] Häusch", editor.getSubString(0, 10));
+    try std.testing.expectEqualStrings("[😊]", editor.getSubString(0, 3));
+}

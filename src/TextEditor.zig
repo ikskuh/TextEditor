@@ -61,6 +61,27 @@ pub fn getText(editor: TextEditor) []const u8 {
     return editor.bytes.items;
 }
 
+/// Returns a portion of the text content.
+pub fn getSubString(editor: TextEditor, start: usize, length: ?usize) []const u8 {
+    const offset = editor.graphemeToByteOffset(start);
+    const substring = editor.bytes.items[offset..];
+
+    if (length) |len| {
+        var i: usize = 0;
+        var iter = makeGraphemeIteratorUnsafe(substring);
+        while (i < len) : (i += 1) {
+            _ = iter.next();
+        }
+        if (iter.next()) |end_offset| {
+            return substring[0..end_offset.offset];
+        } else {
+            return substring;
+        }
+    } else {
+        return substring;
+    }
+}
+
 pub const SetCursorError = error{OutOfBounds};
 
 /// Moves the cursor to the grapheme `offset`. Allowed range is from `0` up to `graphemeCount()`.

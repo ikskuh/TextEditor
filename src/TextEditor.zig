@@ -52,6 +52,8 @@ pub fn deinit(editor: *TextEditor) void {
 pub fn setText(editor: *TextEditor, text: []const u8) InsertError!void {
     if (!std.unicode.utf8ValidateSlice(text))
         return error.InvalidUtf8;
+    if (std.mem.eql(u8, editor.bytes.items, text))
+        return;
     try editor.bytes.replaceRange(0, editor.bytes.items.len, text);
     editor.cursor = editor.graphemeCount();
 }

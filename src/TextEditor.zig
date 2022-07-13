@@ -225,7 +225,7 @@ pub fn setGraphicalCursor(editor: *TextEditor, font: anytype, x: i16, y: i16) vo
         editor.cursor = 0;
         return;
     }
-    const abs_x = std.math.absCast(x);
+    // const abs_x = std.math.absCast(x);
 
     // TODO: Optimize by using binary search on the string instead of linear search.
 

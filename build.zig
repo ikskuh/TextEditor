@@ -3,11 +3,11 @@ const std = @import("std");
 const pkgs = struct {
     const ziglyph = std.build.Pkg{
         .name = "ziglyph",
-        .path = .{ .path = "vendor/ziglyph/src/ziglyph.zig" },
+        .source = .{ .path = "vendor/ziglyph/src/ziglyph.zig" },
     };
     const zigstr = std.build.Pkg{
         .name = "zigstr",
-        .path = .{ .path = "vendor/zigstr/src/Zigstr.zig" },
+        .source = .{ .path = "vendor/zigstr/src/Zigstr.zig" },
         .dependencies = &.{ziglyph},
     };
 };

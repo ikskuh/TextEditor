@@ -11,7 +11,7 @@ For mouse input, the editor component needs to be made aware about the font that
 ```zig
 const TextEditor = @import("src/TextEditor.zig");
 
-fn init(std.mem.Allocator, initial_text: []const u8) InsertError!TextEditor {
+fn init(TextEditor.Buffer, initial_text: []const u8) InsertError!TextEditor {
 fn deinit(*TextEditor) void;
 fn setText(*TextEditor, text: []const u8) InsertError!void;
 fn getText(TextEditor) []const u8;

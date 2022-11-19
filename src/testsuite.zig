@@ -1,8 +1,12 @@
 const std = @import("std");
 const TextEditor = @import("TextEditor.zig");
 
+fn testBuffer() TextEditor.Buffer {
+    return TextEditor.Buffer.initAllocator(std.testing.allocator);
+}
+
 test "empty init" {
-    var editor = try TextEditor.init(std.testing.allocator, "");
+    var editor = try TextEditor.init(testBuffer(), "");
     defer editor.deinit();
 
     try std.testing.expectEqualStrings("", editor.getText());
@@ -10,7 +14,7 @@ test "empty init" {
 }
 
 test "preloaded init" {
-    var editor = try TextEditor.init(std.testing.allocator, "[😊] Häuschen");
+    var editor = try TextEditor.init(testBuffer(), "[😊] Häuschen");
     defer editor.deinit();
 
     try std.testing.expectEqualStrings("[😊] Häuschen", editor.getText());
@@ -18,7 +22,7 @@ test "preloaded init" {
 }
 
 test "basic insert" {
-    var editor = try TextEditor.init(std.testing.allocator, "");
+    var editor = try TextEditor.init(testBuffer(), "");
     defer editor.deinit();
 
     try editor.insertText("[😊");
@@ -30,7 +34,7 @@ test "basic insert" {
 }
 
 test "setText" {
-    var editor = try TextEditor.init(std.testing.allocator, "");
+    var editor = try TextEditor.init(testBuffer(), "");
     defer editor.deinit();
 
     try std.testing.expectEqualStrings("", editor.getText());
@@ -43,7 +47,7 @@ test "setText" {
 }
 
 test "setCursor" {
-    var editor = try TextEditor.init(std.testing.allocator, "[😊] Häuschen");
+    var editor = try TextEditor.init(testBuffer(), "[😊] Häuschen");
     defer editor.deinit();
 
     try editor.setCursor(0);
@@ -60,7 +64,7 @@ test "setCursor" {
 }
 
 test "moveCursor (line)" {
-    var editor = try TextEditor.init(std.testing.allocator, "[😊] Häuschen");
+    var editor = try TextEditor.init(testBuffer(), "[😊] Häuschen");
     defer editor.deinit();
 
     try editor.setCursor(4);
@@ -78,7 +82,7 @@ test "moveCursor (line)" {
 }
 
 test "moveCursor (letter)" {
-    var editor = try TextEditor.init(std.testing.allocator, "[😊] Häuschen");
+    var editor = try TextEditor.init(testBuffer(), "[😊] Häuschen");
     defer editor.deinit();
 
     try editor.setCursor(4);
@@ -106,7 +110,7 @@ test "moveCursor (letter)" {
 }
 
 test "moveCursor (word, right)" {
-    var editor = try TextEditor.init(std.testing.allocator, "[😊] Häuschen");
+    var editor = try TextEditor.init(testBuffer(), "[😊] Häuschen");
     defer editor.deinit();
 
     try editor.setCursor(3);
@@ -152,7 +156,7 @@ test "moveCursor (word, right)" {
 }
 
 test "moveCursor (word, left)" {
-    var editor = try TextEditor.init(std.testing.allocator, "[😊] Häuschen");
+    var editor = try TextEditor.init(testBuffer(), "[😊] Häuschen");
     defer editor.deinit();
 
     try editor.setCursor(12);
@@ -190,7 +194,7 @@ test "moveCursor (word, left)" {
 }
 
 test "delete (line)" {
-    var editor = try TextEditor.init(std.testing.allocator, "");
+    var editor = try TextEditor.init(testBuffer(), "");
     defer editor.deinit();
 
     try editor.setText("[😊] Häuschen");
@@ -205,7 +209,7 @@ test "delete (line)" {
 }
 
 test "delete (letter, left)" {
-    var editor = try TextEditor.init(std.testing.allocator, "");
+    var editor = try TextEditor.init(testBuffer(), "");
     defer editor.deinit();
 
     try editor.setText("[😊] Häuschen");
@@ -232,7 +236,7 @@ test "delete (letter, left)" {
 }
 
 test "delete (letter, right)" {
-    var editor = try TextEditor.init(std.testing.allocator, "");
+    var editor = try TextEditor.init(testBuffer(), "");
     defer editor.deinit();
 
     try editor.setText("[😊] Häuschen");
@@ -269,7 +273,7 @@ test "delete (letter, right)" {
 }
 
 test "delete (word, right)" {
-    var editor = try TextEditor.init(std.testing.allocator, "");
+    var editor = try TextEditor.init(testBuffer(), "");
     defer editor.deinit();
 
     try editor.setText("[😊] Häuschen");
@@ -289,7 +293,7 @@ test "delete (word, right)" {
 }
 
 test "delete (word, left)" {
-    var editor = try TextEditor.init(std.testing.allocator, "");
+    var editor = try TextEditor.init(testBuffer(), "");
     defer editor.deinit();
 
     try editor.setText("[😊] Häuschen");
@@ -315,7 +319,7 @@ test "delete (word, left)" {
 }
 
 test "getSubString" {
-    var editor = try TextEditor.init(std.testing.allocator, "[😊] Häuschen");
+    var editor = try TextEditor.init(testBuffer(), "[😊] Häuschen");
     defer editor.deinit();
 
     try std.testing.expectEqualStrings("", editor.getSubString(0, 0));

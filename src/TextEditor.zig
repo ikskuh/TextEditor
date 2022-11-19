@@ -27,14 +27,112 @@ pub const EditUnit = enum {
 
 pub const InsertError = std.mem.Allocator.Error || error{InvalidUtf8};
 
-bytes: std.ArrayList(u8),
+/// A buffer the text editor will operate on.
+/// Can be allocating or non-allocating. This is especially useful in
+/// embedded/freestanding contexts or low memory situations.
+pub const Buffer = union(enum) {
+    pub const Error = error{OutOfMemory};
+
+    dynamic: std.ArrayList(u8),
+    static: Static,
+
+    pub fn initStatic(buffer: []u8) Buffer {
+        return Buffer{ .static = Static{ .ptr = buffer, .len = 0 } };
+    }
+
+    pub fn initAllocator(allocator: std.mem.Allocator) Buffer {
+        return Buffer{ .dynamic = std.ArrayList(u8).init(allocator) };
+    }
+
+    pub fn deinit(tb: *Buffer) void {
+        switch (tb.*) {
+            .dynamic => |*list| list.deinit(),
+            .static => {},
+        }
+        tb.* = undefined;
+    }
+
+    pub fn set(tb: *Buffer, string: []const u8) Error!void {
+        switch (tb.*) {
+            .dynamic => |*list| {
+                try list.ensureTotalCapacity(string.len);
+                list.appendSliceAssumeCapacity(string);
+            },
+            .static => |*static| {
+                if (string.len > static.ptr.len)
+                    return error.OutOfMemory;
+                std.mem.copy(u8, static.ptr, string);
+                static.len = string.len;
+            },
+        }
+    }
+
+    pub fn replaceRange(tb: *Buffer, start: usize, length: usize, string: []const u8) Error!void {
+        switch (tb.*) {
+            .dynamic => |*list| try list.replaceRange(start, length, string),
+            .static => |*static| {
+                const items = static.ptr[0..static.len];
+                const after_range = start + length;
+                const range = items[start..after_range];
+
+                if (range.len == string.len)
+                    std.mem.copy(u8, range, string)
+                else if (range.len < string.len) {
+                    const first = string[0..range.len];
+                    const rest = string[range.len..];
+
+                    std.mem.copy(u8, range, first);
+
+                    if (static.len + rest.len > static.ptr.len)
+                        return error.OutOfMemory;
+
+                    static.len += rest.len;
+                    const self_items = static.ptr[0..static.len];
+
+                    std.mem.copyBackwards(u8, self_items[after_range + rest.len .. self_items.len], self_items[after_range .. self_items.len - rest.len]);
+                    std.mem.copy(u8, self_items[after_range .. after_range + rest.len], rest);
+                } else {
+                    std.mem.copy(u8, range, string);
+                    const after_subrange = start + string.len;
+
+                    for (items[after_range..]) |item, i| {
+                        items[after_subrange..][i] = item;
+                    }
+
+                    static.len -= length - string.len;
+                }
+            },
+        }
+    }
+
+    pub fn slice(tb: Buffer) []u8 {
+        return switch (tb) {
+            .dynamic => |list| list.items,
+            .static => |static| static.ptr[0..static.len],
+        };
+    }
+
+    pub fn size(tb: Buffer) usize {
+        return switch (tb) {
+            .dynamic => |list| list.items.len,
+            .static => |static| static.len,
+        };
+    }
+
+    pub const Static = struct {
+        ptr: []u8,
+        len: usize,
+    };
+};
+
+bytes: Buffer,
 cursor: usize,
 
-pub fn init(allocator: std.mem.Allocator, initial_text: []const u8) InsertError!TextEditor {
+pub fn init(tb: Buffer, initial_text: []const u8) InsertError!TextEditor {
     if (!std.unicode.utf8ValidateSlice(initial_text))
         return error.InvalidUtf8;
-    var str = try std.ArrayList(u8).initCapacity(allocator, initial_text.len);
-    str.appendSliceAssumeCapacity(initial_text);
+    var str = tb; // clone for mut
+    try str.set(initial_text);
     var editor = TextEditor{
         .bytes = str,
         .cursor = 0,
@@ -52,21 +150,21 @@ pub fn deinit(editor: *TextEditor) void {
 pub fn setText(editor: *TextEditor, text: []const u8) InsertError!void {
     if (!std.unicode.utf8ValidateSlice(text))
         return error.InvalidUtf8;
-    if (std.mem.eql(u8, editor.bytes.items, text))
+    if (std.mem.eql(u8, editor.bytes.slice(), text))
         return;
-    try editor.bytes.replaceRange(0, editor.bytes.items.len, text);
+    try editor.bytes.replaceRange(0, editor.bytes.size(), text);
     editor.cursor = editor.graphemeCount();
 }
 
 /// Returns the current text content.
 pub fn getText(editor: TextEditor) []const u8 {
-    return editor.bytes.items;
+    return editor.bytes.slice();
 }
 
 /// Returns a portion of the text content.
 pub fn getSubString(editor: TextEditor, start: usize, length: ?usize) []const u8 {
     const offset = editor.graphemeToByteOffset(start);
-    const substring = editor.bytes.items[offset..];
+    const substring = editor.bytes.slice()[offset..];
 
     if (length) |len| {
         var i: usize = 0;
@@ -105,7 +203,7 @@ pub fn moveCursor(editor: *TextEditor, direction: EditDirection, unit: EditUnit)
             switch (unit) {
                 .line => editor.cursor = 0,
                 .word => {
-                    var iter = WordIterator.init(editor.bytes.items) catch |e| unreachableUtf8(e);
+                    var iter = WordIterator.init(editor.bytes.slice()) catch |e| unreachableUtf8(e);
 
                     var last_word: ?Word = null;
                     while (iter.next()) |word| {
@@ -116,7 +214,7 @@ pub fn moveCursor(editor: *TextEditor, direction: EditDirection, unit: EditUnit)
                     }
 
                     if (last_word) |word| {
-                        editor.cursor = countGraphemes(editor.bytes.items[0..word.offset]);
+                        editor.cursor = countGraphemes(editor.bytes.slice()[0..word.offset]);
                     } else {
                         // no last word means we're in the first word.
                         // cursor full-throttle to the left
@@ -139,7 +237,7 @@ pub fn moveCursor(editor: *TextEditor, direction: EditDirection, unit: EditUnit)
 
                 // moving a word means we have to find a word boundary
                 .word => {
-                    const rest_string = editor.bytes.items[byte_cursor..];
+                    const rest_string = editor.bytes.slice()[byte_cursor..];
                     var iter = WordIterator.init(rest_string) catch |e| unreachableUtf8(e);
 
                     // assume we're in a word right now, so let's skip that
@@ -190,13 +288,13 @@ pub fn insertText(editor: *TextEditor, text: []const u8) InsertError!void {
         return error.InvalidUtf8;
 
     const offset = editor.graphemeToByteOffset(editor.cursor);
-    try editor.bytes.insertSlice(offset, text);
+    try editor.bytes.replaceRange(offset, 0, text);
     editor.cursor += countGraphemes(text);
 }
 
 /// Returns the number of graphemes in the input buffer.
 pub fn graphemeCount(editor: TextEditor) usize {
-    return countGraphemes(editor.bytes.items);
+    return countGraphemes(editor.bytes.slice());
 }
 
 fn ValidateFont(comptime T: type) type {
@@ -229,7 +327,7 @@ pub fn setGraphicalCursor(editor: *TextEditor, font: anytype, x: i16, y: i16) vo
 
     // TODO: Optimize by using binary search on the string instead of linear search.
 
-    const string = editor.bytes.items;
+    const string = editor.bytes.slice();
     var left_edge: u15 = 0;
     var index: usize = 0;
     while (iter.next()) |wc| : (index += 1) {
@@ -250,7 +348,7 @@ pub fn setGraphicalCursor(editor: *TextEditor, font: anytype, x: i16, y: i16) vo
 }
 
 fn graphemeIterator(editor: TextEditor) GraphemeIterator {
-    return makeGraphemeIteratorUnsafe(editor.bytes.items);
+    return makeGraphemeIteratorUnsafe(editor.bytes.slice());
 }
 
 /// Converts a grapheme offset into a byte offset. This is required to get indices
@@ -266,7 +364,7 @@ fn graphemeToByteOffset(editor: TextEditor, offset: usize) usize {
     }
 
     std.debug.assert(i == offset);
-    return editor.bytes.items.len;
+    return editor.bytes.size();
 }
 
 /// Creates a new grapheme iterator assuming `string` is valid utf8

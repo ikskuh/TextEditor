@@ -1,0 +1,11 @@
+.{
+    .name = "text-editor",
+    .version = "0.1.0",
+
+    .dependencies = .{
+        .ziglyph = .{
+            .url = "https://github.com/jecolon/ziglyph/archive/42f9d115dfddbc00b1795f6acb1c65e7914a2b56.tar.gz",
+            .hash = "12205e082f132d85ccacdc59486bf94338160bccf995a045c4ed826d1ac0b8d90abf",
+        },
+    },
+}

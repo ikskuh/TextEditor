@@ -1,18 +1,12 @@
 const std = @import("std");
 
-const pkgs = struct {
-    const ziglyph = std.build.Pkg{
-        .name = "ziglyph",
-        .source = .{ .path = "vendor/ziglyph/src/ziglyph.zig" },
-    };
-};
-
 pub fn build(b: *std.build.Builder) !void {
-    b.addModule(.{
-        .name = "text-editor",
+    const ziglyph = b.dependency("ziglyph", .{}).module("ziglyph");
+
+    _ = b.addModule("text-editor", .{
         .source_file = .{ .path = "src/TextEditor.zig" },
         .dependencies = &.{
-            .{ .name = "ziglyph", .module = b.dependency("ziglyph", .{}).module("ziglyph") },
+            .{ .name = "ziglyph", .module = ziglyph },
         },
     });
 
@@ -24,7 +18,7 @@ pub fn build(b: *std.build.Builder) !void {
         .optimize = optimize,
         .target = .{},
     });
-    test_runner.addModule("ziglyph", b.dependency("ziglyph", .{}).module("ziglyph"));
+    test_runner.addModule("ziglyph", ziglyph);
 
     test_step.dependOn(&test_runner.step);
 }

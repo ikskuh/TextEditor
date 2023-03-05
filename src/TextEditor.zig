@@ -95,7 +95,7 @@ pub const Buffer = union(enum) {
                     std.mem.copy(u8, range, string);
                     const after_subrange = start + string.len;
 
-                    for (items[after_range..]) |item, i| {
+                    for (items[after_range..], 0..) |item, i| {
                         items[after_subrange..][i] = item;
                     }
 

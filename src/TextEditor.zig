@@ -270,8 +270,8 @@ pub fn delete(editor: *TextEditor, direction: EditDirection, unit: EditUnit) voi
     if (cursor_start == cursor_end)
         return;
 
-    const byte_range_start = editor.graphemeToByteOffset(std.math.min(cursor_start, cursor_end));
-    const byte_range_end = editor.graphemeToByteOffset(std.math.max(cursor_start, cursor_end));
+    const byte_range_start = editor.graphemeToByteOffset(@min(cursor_start, cursor_end));
+    const byte_range_end = editor.graphemeToByteOffset(@max(cursor_start, cursor_end));
 
     // cannot fail as we're always reducing the range by at least one byte, never increase!
     editor.bytes.replaceRange(byte_range_start, byte_range_end - byte_range_start, "") catch unreachable;
@@ -369,7 +369,7 @@ fn graphemeToByteOffset(editor: TextEditor, offset: usize) usize {
 
 /// Creates a new grapheme iterator assuming `string` is valid utf8
 fn makeGraphemeIteratorUnsafe(string: []const u8) GraphemeIterator {
-    return GraphemeIterator.init(string) catch |e| unreachableUtf8(e);
+    return GraphemeIterator.init(string);
 }
 
 // out editor guarantees that we always have valid utf8

@@ -11,7 +11,6 @@ pub fn build(b: *std.build.Builder) !void {
     });
 
     const optimize = b.standardOptimizeOption(.{});
-    const test_step = b.step("test", "Runs the test suite.");
 
     const test_runner = b.addTest(.{
         .root_source_file = .{ .path = "src/testsuite.zig" },
@@ -20,5 +19,5 @@ pub fn build(b: *std.build.Builder) !void {
     });
     test_runner.addModule("ziglyph", ziglyph);
 
-    test_step.dependOn(&test_runner.step);
+    b.getInstallStep().dependOn(&test_runner.step);
 }

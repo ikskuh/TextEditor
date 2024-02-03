@@ -61,7 +61,7 @@ pub const Buffer = union(enum) {
             .static => |*static| {
                 if (string.len > static.ptr.len)
                     return error.OutOfMemory;
-                std.mem.copy(u8, static.ptr, string);
+                @memcpy(static.ptr, string);
                 static.len = string.len;
             },
         }
@@ -76,12 +76,12 @@ pub const Buffer = union(enum) {
                 const range = items[start..after_range];
 
                 if (range.len == string.len)
-                    std.mem.copy(u8, range, string)
+                    @memcpy(range, string)
                 else if (range.len < string.len) {
                     const first = string[0..range.len];
                     const rest = string[range.len..];
 
-                    std.mem.copy(u8, range, first);
+                    @memcpy(range, first);
 
                     if (static.len + rest.len > static.ptr.len)
                         return error.OutOfMemory;
@@ -90,9 +90,9 @@ pub const Buffer = union(enum) {
                     const self_items = static.ptr[0..static.len];
 
                     std.mem.copyBackwards(u8, self_items[after_range + rest.len .. self_items.len], self_items[after_range .. self_items.len - rest.len]);
-                    std.mem.copy(u8, self_items[after_range .. after_range + rest.len], rest);
+                    @memcpy(self_items[after_range .. after_range + rest.len], rest);
                 } else {
-                    std.mem.copy(u8, range, string);
+                    @memcpy(range, string);
                     const after_subrange = start + string.len;
 
                     for (items[after_range..], 0..) |item, i| {

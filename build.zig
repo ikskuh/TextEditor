@@ -1,23 +1,24 @@
 const std = @import("std");
 
-pub fn build(b: *std.build.Builder) !void {
-    const ziglyph = b.dependency("ziglyph", .{}).module("ziglyph");
-
-    _ = b.addModule("text-editor", .{
-        .source_file = .{ .path = "src/TextEditor.zig" },
-        .dependencies = &.{
-            .{ .name = "ziglyph", .module = ziglyph },
-        },
-    });
-
+pub fn build(b: *std.Build) !void {
+    const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
+    const ziglyph = b.dependency("ziglyph", .{ .target = target, .optimize = optimize }).module("ziglyph");
+
+    const text_editor = b.addModule("text-editor", .{
+        .root_source_file = .{ .path = "src/TextEditor.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    text_editor.addImport("ziglyph", ziglyph);
 
     const test_runner = b.addTest(.{
         .root_source_file = .{ .path = "src/testsuite.zig" },
+        .target = target,
         .optimize = optimize,
-        .target = .{},
     });
-    test_runner.addModule("ziglyph", ziglyph);
+    test_runner.root_module.addImport("text-editor", text_editor);
 
     b.getInstallStep().dependOn(&test_runner.step);
 }

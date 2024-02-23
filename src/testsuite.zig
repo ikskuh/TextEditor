@@ -1,5 +1,5 @@
 const std = @import("std");
-const TextEditor = @import("TextEditor.zig");
+const TextEditor = @import("text-editor");
 
 fn testBuffer() TextEditor.Buffer {
     return TextEditor.Buffer.initAllocator(std.testing.allocator);

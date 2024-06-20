@@ -61,7 +61,7 @@ pub const Buffer = union(enum) {
             .static => |*static| {
                 if (string.len > static.ptr.len)
                     return error.OutOfMemory;
-                @memcpy(static.ptr, string);
+                std.mem.copyForwards(u8, static.ptr, string);
                 static.len = string.len;
             },
         }
